@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "kv_encryption": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7189",
+      "launchBrowser": false
+    }
+  }
+}

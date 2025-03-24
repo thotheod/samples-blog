@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "kv-encryption", "kv-encryption\kv-encryption.csproj", "{58F30E53-85F2-EEB3-4588-178FB621810E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{58F30E53-85F2-EEB3-4588-178FB621810E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58F30E53-85F2-EEB3-4588-178FB621810E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58F30E53-85F2-EEB3-4588-178FB621810E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58F30E53-85F2-EEB3-4588-178FB621810E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E2B45D24-D476-47A8-B1D9-C2D3C5EEFA7C}
+	EndGlobalSection
+EndGlobal
