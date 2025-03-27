@@ -4,9 +4,14 @@ __pycache__/
 *$py.class
 
 
+
+
 # local
 *.vscode
 *.local*
+*.suo
+__azurite*
+*.vs
 
 # C extensions
 *.so
