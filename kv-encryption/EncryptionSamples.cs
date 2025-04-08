@@ -10,19 +10,67 @@ using System.Text;
 
 namespace kv_encryption
 {
-    public class CreateKey
+    public class EncryptionSamples
     {
-        private readonly ILogger<CreateKey> _logger;
+        private readonly ILogger<EncryptionSamples> _logger;
 
-        public CreateKey(ILogger<CreateKey> logger)
+        public EncryptionSamples(ILogger<EncryptionSamples> logger)
         {
             _logger = logger;
+        }
+
+        private KeyClient SetupKeyClient()
+        {
+            var vaultUrl = Environment.GetEnvironmentVariable("VAULT_URL");
+            if (string.IsNullOrEmpty(vaultUrl))
+            {
+                _logger.LogError("Environment variable 'VAULT_URL' is not set.");
+                throw new InvalidOperationException("Environment variable 'VAULT_URL' is not set.");
+            }
+            return new KeyClient(vaultUri: new Uri(vaultUrl), credential: new DefaultAzureCredential());
+        }
+
+        [Function("CreateKey")]
+        public IActionResult CreateKey([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req)
+        {
+            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            // Validate query parameters
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+            string keyName = req.Query["key"].FirstOrDefault();
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+
+            if (string.IsNullOrEmpty(keyName))
+            {
+                _logger.LogError("Missing required query parameter 'key'.");
+                return new BadRequestObjectResult("Missing required query parameters 'key'.");
+            }
+
+            // Use SetupKeyClient method to get the KeyClient
+            var client = SetupKeyClient();
+
+            // Additional logic for CreateKey function
+            KeyVaultKey key;
+            try
+            {
+                // Try to retrieve the key using the key client.
+                key = client.GetKey(keyName);
+                _logger.LogInformation("Key '{KeyName}' already exists. Using the existing key.", keyName);
+            }
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+            {
+                // If the key does not exist, create a new key.
+                _logger.LogInformation("Key '{KeyName}' does not exist. Creating a new key.", keyName);
+                key = client.CreateKey(keyName, KeyType.Rsa);
+                return new OkObjectResult($"Key '{key.Name}' of type '{key.KeyType}' created successfully.");
+            }
+
+            return new OkObjectResult($"Key '{keyName}' already exists.");
         }
 
         [Function("EncryptWithKey")]
         public IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req)
         {
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            _logger.LogInformation("C# HTTP trigger function - EncryptWithKey");
 
             // Validate query parameters
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
@@ -36,15 +84,8 @@ namespace kv_encryption
                 return new BadRequestObjectResult("Missing required query parameters 'key' and/or 'text'.");
             }
 
-            // Create a new key client using the default credential from Azure.Identity using environment variables previously set,
-            // including AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID.
-            var vaultUrl = Environment.GetEnvironmentVariable("VAULT_URL");
-            if (string.IsNullOrEmpty(vaultUrl))
-            {
-                _logger.LogError("Environment variable 'VAULT_URL' is not set.");
-                return new BadRequestObjectResult("Environment variable 'VAULT_URL' is not set.");
-            }
-            var client = new KeyClient(vaultUri: new Uri(vaultUrl), credential: new DefaultAzureCredential());
+            // Use SetupKeyClient method to get the KeyClient
+            var client = SetupKeyClient();
 
             KeyVaultKey key;
             try
@@ -56,8 +97,8 @@ namespace kv_encryption
             catch (Azure.RequestFailedException ex) when (ex.Status == 404)
             {
                 // If the key does not exist, create a new key.
-                _logger.LogInformation("Key '{KeyName}' does not exist. Creating a new key.", keyName);
-                key = client.CreateKey(keyName, KeyType.Rsa);
+                _logger.LogInformation("Key '{KeyName}' does not exist.", keyName);
+                return new BadRequestObjectResult($"Key {keyName} is not found.");
             }
 
             // Create a new cryptography client using the same Key Vault or Managed HSM endpoint, service version,
@@ -73,12 +114,10 @@ namespace kv_encryption
             DecryptResult decryptResult = cryptoClient.Decrypt(EncryptionAlgorithm.RsaOaep, encryptResult.Ciphertext);
             string decryptedText = Encoding.UTF8.GetString(decryptResult.Plaintext);
 
-
-            return new OkObjectResult($"Welcome to Azure Functions! " + Environment.NewLine +
-                $"+Encrypted Text: {Convert.ToBase64String(encryptResult.Ciphertext)}" + Environment.NewLine +
-                $"+Encrypted Text: {decryptedText}");
+            return new OkObjectResult($"EncryptWithKey Function Call result: " + Environment.NewLine +
+                $"Encrypted Text: {Convert.ToBase64String(encryptResult.Ciphertext)}" + Environment.NewLine +
+                $"Decrypted Text: {decryptedText}");
         }
-
 
         [Function("HashText")]
         public IActionResult HashText([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req)
@@ -97,14 +136,8 @@ namespace kv_encryption
                 return new BadRequestObjectResult("Missing required query parameters 'key' and/or 'text'.");
             }
 
-            // Create a new key client using the default credential from Azure.Identity
-            var vaultUrl = Environment.GetEnvironmentVariable("VAULT_URL");
-            if (string.IsNullOrEmpty(vaultUrl))
-            {
-                _logger.LogError("Environment variable 'VAULT_URL' is not set.");
-                return new BadRequestObjectResult("Environment variable 'VAULT_URL' is not set.");
-            }
-            var client = new KeyClient(vaultUri: new Uri(vaultUrl), credential: new DefaultAzureCredential());
+            // Use SetupKeyClient method to get the KeyClient
+            var client = SetupKeyClient();
 
             KeyVaultKey key;
             try
@@ -120,17 +153,19 @@ namespace kv_encryption
             }
 
             // Use the key to create an HMAC hash
-            byte[] keyBytes = key.Key.N; // Use the N property of JsonWebKey for the key bytes
-            using var hmac = new HMACSHA256(keyBytes);
+            string hash = HashApiKey(text, key.Key.N);
+
+            return new OkObjectResult($"HashText Function Call result: " + Environment.NewLine +
+                $"Text To Hash: {text}" + Environment.NewLine +
+                $"Hashed Text: {hash}");
+        }
+
+        public static string HashApiKey(string text, byte[] secretKey)
+        {
+            using var hmac = new HMACSHA256(secretKey);
             byte[] textBytes = Encoding.UTF8.GetBytes(text);
             byte[] hashBytes = hmac.ComputeHash(textBytes);
-            string hash = Convert.ToBase64String(hashBytes);
-
-           // return new OkObjectResult($"Hashed Text: {hash}");
-
-            return new OkObjectResult($"Welcome to Azure Functions! " + Environment.NewLine +
-                $"Text To encrypt: {text}" + Environment.NewLine +
-                $"Hashed Text: {hash}");
+            return Convert.ToBase64String(hashBytes);
         }
     }
 }
