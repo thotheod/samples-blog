@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Variables
+RESOURCE_GROUP="rg-private-dns"
+LOCATION="swedencentral"
+
+# Create Resource Group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Deploy Private DNS Zones
+az deployment group create \
+  --resource-group $RESOURCE_GROUP \
+  --template-file private-dns-zones.bicep \
+  --parameters location=$LOCATION tags='{"environment": "hub", "owner": "network-team"}'
