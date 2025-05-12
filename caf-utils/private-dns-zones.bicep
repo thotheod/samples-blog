@@ -26,6 +26,12 @@ resource webAppsPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = 
   tags: tags
 }
 
+resource staticWebAppsPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
+  name: 'privatelink.azurestaticapps.net'
+  location: 'global'
+  tags: tags
+}
+
 resource storageBlobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   name: 'privatelink.${environment().suffixes.storage}'
   location: 'global'
@@ -51,7 +57,7 @@ resource storageFilePrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01
 }
 
 resource cosmosDbPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
-  name: 'privatelink.documents.azure.us'
+  name: 'privatelink.documents.azure.com'
   location: 'global'
   tags: tags
 }
@@ -87,7 +93,7 @@ resource containerRegistryPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024
 }
 
 resource aiSearchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
-  name: 'privatelink.search.azure.us'
+  name: 'privatelink.search.windows.net'
   location: 'global'
   tags: tags
 }
