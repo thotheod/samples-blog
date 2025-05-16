@@ -33,7 +33,7 @@ resource staticWebAppsPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-
 }
 
 resource storageBlobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
-  name: 'privatelink.${environment().suffixes.storage}'
+  name: 'privatelink.blob.${environment().suffixes.storage}'
   location: 'global'
   tags: tags
 }
